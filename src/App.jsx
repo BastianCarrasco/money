@@ -1,88 +1,115 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Tooltip } from "./Tooltip";
+import { calculateDayIndex, formatMonthName } from "./utils";
 import fondos from "./data_ff/fondos";
-import dataFondos from "./data_ff/periodos";
 
 export default function App() {
-  const meses = [
-    "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  const mesesCompletos = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
+  const daysPerMonth = 30; // Asumiendo 30 días por mes
+  const totalDays = mesesCompletos.length * daysPerMonth;
 
-  // Cada mes tendrá 4 subdivisiones, totalizando 44 columnas
-  const totalDivisiones = 44;
+  const [currentDayIndex, setCurrentDayIndex] = useState(null);
+  const [tooltipData, setTooltipData] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
 
-  // Estado para controlar la visibilidad del tooltip
-  const [tooltip, setTooltip] = useState(null);
+  useEffect(() => {
+    const today = new Date();
+    const monthIndex = today.getMonth();
+    const day = today.getDate();
+    setCurrentDayIndex(monthIndex * daysPerMonth + (day - 1));
+  }, []);
 
-  const handleMouseEnter = (fondo) => {
-    setTooltip(fondo);
+  const handleMouseEnter = (fondo, e) => {
+    const rect = e.target.getBoundingClientRect();
+    const tooltipLeft = rect.left + rect.width / 2 - 50;
+    const tooltipTop = rect.top - 40;
+
+    const [startDay, startMonth] = fondo.fechaInicio.split("-").map(Number);
+    const [endDay, endMonth] = fondo.fechaCierre.split("-").map(Number);
+
+    const formattedStartDate = `${startDay} de ${mesesCompletos[startMonth - 1]}`;
+    const formattedEndDate = `${endDay} de ${mesesCompletos[endMonth - 1]}`;
+
+    // Verificamos si el fondo comienza el 1 y termina el 30 del mes
+    const monthsMessage = startDay === 1 && endDay === 30
+      ? `El periodo es entre los meses de ${mesesCompletos[startMonth - 1]} y ${mesesCompletos[endMonth - 1]}`
+      : `Inicio: ${formattedStartDate}, Fin: ${formattedEndDate}`;
+
+    setTooltipPosition({ left: tooltipLeft, top: tooltipTop });
+    setTooltipData({ message: monthsMessage });
   };
 
   const handleMouseLeave = () => {
-    setTooltip(null);
+    setTooltipData(null);
   };
 
   return (
-    <div className="p-4 overflow-x-auto">
+    <div className="p-4 overflow-x-auto relative">
       <h1 className="text-2xl font-bold mb-4">Cronograma de Fondos Concursables</h1>
-      
-      <div className="grid grid-cols-[200px_repeat(44,minmax(15px,1fr))] gap-1 text-sm font-semibold border-b pb-2">
-        <div className="text-left px-2">Fondo Concursable</div>
-        {meses.map((mes, index) => (
-          <div key={index} className="col-span-4 text-center border-x px-1">{mes}</div>
-        ))}
-      </div>
-      
-      <div className="grid grid-cols-[200px_repeat(44,minmax(15px,1fr))] gap-1 relative">
-        {fondos.map((fondo, i) => (
-          <div key={i} className="contents">
-            <div className="text-left px-2 border-b py-1">
-              {/* Enlace al fondo con el tooltip al pasar el mouse */}
-              <a
-                href={fondo.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-                onMouseEnter={() => handleMouseEnter(fondo)}
-                onMouseLeave={handleMouseLeave}
-              >
-                {fondo.nombre}
-              </a>
 
-              {/* Mostrar el tooltip con la información cuando el mouse esté sobre el enlace */}
-              {tooltip === fondo && (
-                <div className="absolute bg-white border p-3 shadow-lg mt-2 rounded-lg transition-all opacity-90 max-w-xs z-10">
-                  <table className="text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="font-bold pr-2">Fondo Concursable:</td>
-                        <td>{fondo.nombre}</td>
-                      </tr>
-                      <tr>
-                        <td className="font-bold pr-2">Fecha Inicio:</td>
-                        <td>{fondo.fechaInicio}</td>
-                      </tr>
-                      <tr>
-                        <td className="font-bold pr-2">Fecha Cierre:</td>
-                        <td>{fondo.fechaCierre}</td>
-                      </tr>
-                      <tr>
-                        <td className="font-bold pr-2">Plataforma:</td>
-                        <td>{fondo.plataforma}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-            {[...Array(totalDivisiones)].map((_, j) => (
-              <div
-                key={j}
-                className={`h-6 rounded border ${dataFondos[fondo.nombre]?.some(([start, end]) => j + 1 >= start && j + 1 <= end) ? 'bg-green-500' : 'bg-gray-200'}`}
-              ></div>
-            ))}
+      {/* Cabecera */}
+      <div className="grid" style={{ gridTemplateColumns: `200px repeat(${totalDays}, 3.6px)` }}>
+        <div className="text-left px-2 font-semibold">Fondo Concursable</div>
+        {mesesCompletos.map((mes, index) => (
+          <div key={index} className="text-center font-semibold border-x" style={{ gridColumn: `span ${daysPerMonth}` }}>
+            {mes}
           </div>
         ))}
       </div>
+
+      {/* Cuerpo */}
+      <div className="relative">
+        {fondos.map((fondo, i) => {
+          const startIndex = calculateDayIndex(fondo.fechaInicio);
+          const endIndex = calculateDayIndex(fondo.fechaCierre);
+
+          return (
+            <div
+              key={i}
+              className="grid"
+              style={{ gridTemplateColumns: `200px repeat(${totalDays}, 3.6px)` }}
+              onMouseEnter={(e) => handleMouseEnter(fondo, e)}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* Nombre del fondo */}
+              <div className="text-left px-2 border-b py-1 relative">
+                <a href={fondo.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                  {fondo.nombre}
+                </a>
+              </div>
+
+              {/* Días del fondo */}
+              {Array.from({ length: totalDays }, (_, j) => (
+                <DayCell 
+                  key={j} 
+                  isOccupied={j >= startIndex && j <= endIndex} 
+                />
+              ))}
+            </div>
+          );
+        })}
+
+        {/* Línea roja para la fecha actual */}
+        {currentDayIndex !== null && (
+          <div
+            style={{ left: `${200 + currentDayIndex * 3.6}px` }}
+            className="absolute top-0 bottom-0 w-[2px] bg-red-500 opacity-80"
+          ></div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      <Tooltip message={tooltipData?.message} position={tooltipPosition} />
     </div>
   );
 }
+
+// Componente de Celda de Día
+const DayCell = ({ isOccupied }) => {
+  return (
+    <div className={`h-6 border ${isOccupied ? "bg-green-500" : "bg-gray-50"}`}></div>
+  );
+};
