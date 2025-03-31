@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tooltip } from "./Tooltip";
-import { calculateDayIndex, formatMonthName } from "./utils";
+import { calculateDayIndex } from "./utils";
 import fondos from "./data_ff/fondos";
 
 export default function App() {
@@ -14,12 +14,14 @@ export default function App() {
   const [currentDayIndex, setCurrentDayIndex] = useState(null);
   const [tooltipData, setTooltipData] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
+  const [currentDate, setCurrentDate] = useState("");
 
   useEffect(() => {
     const today = new Date();
     const monthIndex = today.getMonth();
     const day = today.getDate();
     setCurrentDayIndex(monthIndex * daysPerMonth + (day - 1));
+    setCurrentDate(`${day} de ${mesesCompletos[monthIndex]} de ${today.getFullYear()}`);
   }, []);
 
   const handleMouseEnter = (fondo, e) => {
@@ -33,7 +35,6 @@ export default function App() {
     const formattedStartDate = `${startDay} de ${mesesCompletos[startMonth - 1]}`;
     const formattedEndDate = `${endDay} de ${mesesCompletos[endMonth - 1]}`;
 
-    // Verificamos si el fondo comienza el 1 y termina el 30 del mes
     const monthsMessage = startDay === 1 && endDay === 30
       ? `El periodo es entre los meses de ${mesesCompletos[startMonth - 1]} y ${mesesCompletos[endMonth - 1]}`
       : `Inicio: ${formattedStartDate}, Fin: ${formattedEndDate}`;
@@ -47,8 +48,11 @@ export default function App() {
   };
 
   return (
-    <div className="p-4 overflow-x-auto relative">
-      <h1 className="text-2xl font-bold mb-4">Cronograma de Fondos Concursables</h1>
+    <div className="p-4 overflow-x-auto relative min-h-screen bg-gradient-to-b from-white-200 to-white">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Cronograma de Fondos Concursables</h1>
+        <div className="text-lg font-semibold text-gray-700">{currentDate}</div>
+      </div>
 
       {/* Cabecera */}
       <div className="grid" style={{ gridTemplateColumns: `200px repeat(${totalDays}, 3.6px)` }}>
@@ -74,31 +78,39 @@ export default function App() {
               onMouseEnter={(e) => handleMouseEnter(fondo, e)}
               onMouseLeave={handleMouseLeave}
             >
-              {/* Nombre del fondo */}
               <div className="text-left px-2 border-b py-1 relative">
                 <a href={fondo.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                   {fondo.nombre}
                 </a>
               </div>
-
-              {/* Días del fondo */}
               {Array.from({ length: totalDays }, (_, j) => (
-                <DayCell 
-                  key={j} 
-                  isOccupied={j >= startIndex && j <= endIndex} 
-                />
+                <DayCell key={j} isOccupied={j >= startIndex && j <= endIndex} />
               ))}
             </div>
           );
         })}
 
-        {/* Línea roja para la fecha actual */}
-        {currentDayIndex !== null && (
-          <div
-            style={{ left: `${200 + currentDayIndex * 3.6}px` }}
-            className="absolute top-0 bottom-0 w-[2px] bg-red-500 opacity-80"
-          ></div>
-        )}
+       {/* Línea roja para la fecha actual */}
+{currentDayIndex !== null && (
+  <>
+    <div
+      style={{ left: `${200 + currentDayIndex * 3.6}px` }}
+      className="absolute top-0 bottom-0 w-[2px] bg-red-500 opacity-80"
+    ></div>
+    
+    {/* Fecha encima de la línea roja */}
+    <div
+      style={{
+        left: `${180 + currentDayIndex * 3.6 - 15}px`,
+        top: "-40px",
+      }}
+      className="absolute text-sm font-semibold text-red-500 bg-white px-1 rounded"
+    >
+      {new Date().toLocaleDateString("es-ES")}
+    </div>
+  </>
+)}
+
       </div>
 
       {/* Tooltip */}
@@ -107,9 +119,8 @@ export default function App() {
   );
 }
 
-// Componente de Celda de Día
 const DayCell = ({ isOccupied }) => {
   return (
-    <div className={`h-6 border ${isOccupied ? "bg-green-500" : "bg-gray-50"}`}></div>
+    <div className={`h-6 border ${isOccupied ? "bg-green-500" : "bg-grey-500"}`}></div>
   );
 };
