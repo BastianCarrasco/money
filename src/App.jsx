@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tooltip } from "./Tooltip";
 import { calculateDayIndex } from "./utils";
-import fondos from "./data_ff/fondos";
 
 export default function App() {
   const mesesCompletos = [
@@ -11,17 +10,32 @@ export default function App() {
   const daysPerMonth = 30; // Asumiendo 30 días por mes
   const totalDays = mesesCompletos.length * daysPerMonth;
 
+  const [fondos, setFondos] = useState([]); // Estado para almacenar los fondos
   const [currentDayIndex, setCurrentDayIndex] = useState(null);
   const [tooltipData, setTooltipData] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ left: 0, top: 0 });
   const [currentDate, setCurrentDate] = useState("");
 
   useEffect(() => {
+    // Obtener la fecha actual
     const today = new Date();
     const monthIndex = today.getMonth();
     const day = today.getDate();
     setCurrentDayIndex(monthIndex * daysPerMonth + (day - 1));
     setCurrentDate(`${day} de ${mesesCompletos[monthIndex]} de ${today.getFullYear()}`);
+
+    // Realizar el fetch para obtener los fondos
+    const fetchFondos = async () => {
+      try {
+        const response = await fetch('https://backend-fechas.onrender.com/fechas');
+        const data = await response.json();
+        setFondos(data); // Almacenar los fondos en el estado
+      } catch (error) {
+        console.error('Error al obtener los fondos:', error);
+      }
+    };
+
+    fetchFondos();
   }, []);
 
   const handleMouseEnter = (fondo, e) => {
@@ -90,27 +104,26 @@ export default function App() {
           );
         })}
 
-       {/* Línea roja para la fecha actual */}
-{currentDayIndex !== null && (
-  <>
-    <div
-      style={{ left: `${200 + currentDayIndex * 3.6}px` }}
-      className="absolute top-0 bottom-0 w-[2px] bg-red-500 opacity-80"
-    ></div>
-    
-    {/* Fecha encima de la línea roja */}
-    <div
-      style={{
-        left: `${180 + currentDayIndex * 3.6 - 15}px`,
-        top: "-40px",
-      }}
-      className="absolute text-sm font-semibold text-red-500 bg-white px-1 rounded"
-    >
-      {new Date().toLocaleDateString("es-ES")}
-    </div>
-  </>
-)}
+        {/* Línea roja para la fecha actual */}
+        {currentDayIndex !== null && (
+          <>
+            <div
+              style={{ left: `${200 + currentDayIndex * 3.6}px` }}
+              className="absolute top-0 bottom-0 w-[2px] bg-red-500 opacity-80"
+            ></div>
 
+            {/* Fecha encima de la línea roja */}
+            <div
+              style={{
+                left: `${180 + currentDayIndex * 3.6 - 15}px`,
+                top: "-40px",
+              }}
+              className="absolute text-sm font-semibold text-red-500 bg-white px-1 rounded"
+            >
+              {new Date().toLocaleDateString("es-ES")}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tooltip */}
@@ -121,6 +134,6 @@ export default function App() {
 
 const DayCell = ({ isOccupied }) => {
   return (
-    <div className={`h-6 border ${isOccupied ? "bg-green-500" : "bg-grey-500"}`}></div>
+    <div className={`h-6 border ${isOccupied ? "bg-green-500" : "bg-gray-500"}`}></div>
   );
 };
